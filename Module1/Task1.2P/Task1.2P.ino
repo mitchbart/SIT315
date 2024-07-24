@@ -9,7 +9,7 @@ volatile bool tiltState = false;
 void setup() {
   DDRB |= 0b00110000;  // assign leds 12 and 13 to output;
   PCICR |= 0b00000100;  // enable pin change interrupt for Port D
-  PCMSK2 |= 0b00001000;  // enable interrupt for pin 4
+  PCMSK2 |= 0b00010000;  // enable interrupt for pin 4
   Serial.begin(9600);  //establish serial connection with standard baud rate
 }
 
@@ -30,7 +30,7 @@ void loop() {
 ISR(PCINT2_vect) {
   Serial.println("");
   Serial.println("INTERUPTED!");
-  tiltState = PIND & 0b00001000;  // alternative byte code for digitalRead()
+  tiltState = PIND & 0b00010000;  // alternative byte code for digitalRead()
   Serial.print("Tiltstate: ");
   Serial.println(tiltState);
 
