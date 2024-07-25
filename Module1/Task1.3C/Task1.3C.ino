@@ -4,13 +4,16 @@ const uint8_t BLUE_LED_PIN = 12;
 
 // Init volatile states - will change
 volatile bool tiltState = false;
-volatile bool lightState = false;
+volatile int lightState = false;
 
 // Run on startup - assign outputs, interrupt and serial connection
 void setup() {
   DDRB |= 0b00110000;  // assign led pins 12 and 13 to output;
   PCICR |= 0b00000100;  // enable pin change interrupt for Port D
-  PCMSK2 |= 0b00110000;  // enable interrupt for pins 4 and 5
+  PCMSK2 |= 0b00010000;  // enable interrupt for pin 4
+  PCICR |= 0b00000010; // enable port change interrupt for Port C - analogue pins
+  PCMSK1 |= 0b00000001;  // enable interupt on pin A0
+  //PCMSK2 |= 0b00110000;  // enable interrupt for pins 4 and 5
   Serial.begin(9600);  //establish serial connection with standard baud rate
 }
 
@@ -20,9 +23,10 @@ void loop() {
 
 // Interrupt service routine watching port D
 ISR(PCINT2_vect) {
-  Serial.println("INTERRUPT!");
+  Serial.println("TILT INTERRUPT!");
   // Get and print tiltState
   tiltState = PIND & 0b00010000;  // byte code for digitalRead(4)
+  //tiltState = digitalRead(4);
   Serial.print("tiltState: ");
   Serial.println(tiltState);  
 
@@ -30,16 +34,25 @@ ISR(PCINT2_vect) {
   digitalWrite(RED_LED_PIN, !tiltState);
   digitalWrite(BLUE_LED_PIN, tiltState);
 
+
+}
+
+ISR(PCINT1_vect) {
+  Serial.println("LIGHT INTERRUPT!");
   // Get and print lightState
-  lightState = PIND & 0b00100000;  // byte code for digitalRead(5)
+  //lightState = PIND & 0b00100000;  // byte code for digitalRead(5)
+  //lightState = digitalRead(5);
+  lightState = analogRead(A0);
   Serial.print("lightState: ");
   Serial.println(lightState);
   
-  // Play a tone while light is detected 
-  if (lightState != 0) {
+  Play a tone while light is detected 
+  if (lightState > 100) {
     tone(8, 42);
   }
   else {
     noTone(8);
   }
+
 }
+
