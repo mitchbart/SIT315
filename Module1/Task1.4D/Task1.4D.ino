@@ -1,4 +1,4 @@
-// Init read-only pins for leds
+// Init read-only pins for LEDs
 const uint8_t RED_LED_PIN = 13;
 const uint8_t BLUE_LED_PIN = 2;
 const uint8_t GREEN_LED_PIN = 6;
@@ -12,7 +12,7 @@ volatile bool prevLightState2 = 0;
 
 // Run on startup
 void setup() {
-  // Assign output led pins
+  // Assign output LED pins
   DDRB |= 0b00100000; // Pin 13;
   DDRD |= 0b01000100; // Pin 2 and 6;
   
@@ -59,11 +59,11 @@ ISR(PCINT1_vect) {
   // Update lightstate and play tones
   if (lightState != prevLightState) { // If lightState has changed
   	prevLightState = lightState; // Update previous lightState
-    if (lightState != 0) { // If lightState == 1 play a tone
+    if (lightState == 1) { // If lightState == 1 play a tone
     	tone(8, 494);
   	}
-  	else { // If lightState == 0 play a different tone
-    	tone(8, 349);
+  	else { // If lightState == 0, no tone
+      noTone(8);
   	}
   }
 }
@@ -80,11 +80,11 @@ ISR(PCINT0_vect) {
 // Update lightstate2 and play tones
   if (lightState2 != prevLightState2) { // If lightState has changed
   	prevLightState2 = lightState2; // Update previous lightState2
-    if (lightState2 != 0) { // If lightState2 == 1 play a tone
+    if (lightState2 == 1) { // If lightState2 == 1 play a tone
     	tone(8, 330);
   	}
-  	else { // If lightState2 == 0 play a different tone
-    	tone(8, 440);
+  	else { // If lightState2 == 0, no tone
+      noTone(8);
   	}
   }
 }
@@ -105,7 +105,7 @@ void startTimer(){
   // Frequency to call timer compare interrupt
   OCR1A = 15624;  // Every 1 second
   
-  //TIMSK1 |= (1 << OCIE1A);
+  // Enable timer compare interrupt
   TIMSK1 |= 0b00000010;
   
   interrupts();
@@ -113,7 +113,6 @@ void startTimer(){
 
 // Timer interrupt
 ISR(TIMER1_COMPA_vect){
-  // Flip the state of the green led
+  // Flip the state of the green LED
   digitalWrite(GREEN_LED_PIN, digitalRead(GREEN_LED_PIN) ^ 1);
-  //digitalWrite(GREEN_LED_PIN, PIND & 0b00000100 ^ 1);
 }
