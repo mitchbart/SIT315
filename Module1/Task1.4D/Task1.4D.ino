@@ -1,20 +1,16 @@
-// Define constant read-only variables for button and led pins
+// Init read-only pins for leds
 const uint8_t RED_LED_PIN = 13;
-//const uint8_t BLUE_LED_PIN = 12;
 const uint8_t BLUE_LED_PIN = 2;
 const uint8_t GREEN_LED_PIN = 6;
 
-// Init volatile states - will change
+// Init changing states
 volatile bool tiltState = 0;
 volatile bool lightState = 0;
-volatile bool lightState2 = 0;
-volatile bool ledState = 0;
-
 volatile bool prevLightState = 0;
+volatile bool lightState2 = 0;
 volatile bool prevLightState2 = 0;
 
-
-// Run on startup - assign outputs, interrupt and serial connection
+// Run on startup
 void setup() {
   // Assign output led pins
   DDRB |= 0b00100000; // Pin 13;
@@ -23,94 +19,91 @@ void setup() {
   // Enable pin change interrupt on all ports
   PCICR |= 0b00000111;
   
-  // Enable interrupt on pins 4, A0, and 11
+  // Watch interrupts on pins 4, A0, and 11
   PCMSK2 |= 0b00010000; // Pin 4
   PCMSK1 |= 0b00000001; // Pin A0
   PCMSK0 |= 0b00001000; // Pin 11
   
+  // Begin timer function and open serial port
   startTimer();
-  
-  Serial.begin(9600);  //establish serial connection with standard baud rate
+  Serial.begin(9600); 
 }
 
 void loop() {
   // Empty
 }
 
-// Interrupt service routine watching port D
+// Tilt interrupt - watching port D
 ISR(PCINT2_vect) {
-  Serial.println("TILT INTERRUPT!");
-  // Get and print tiltState
-  tiltState = PIND & 0b00010000;  // byte code for digitalRead(4)
+  Serial.println("Tilt interrupt!");
+
+  // Get tiltState and display
+  tiltState = PIND & 0b00010000; // Digital read of tilt sensor pin
   Serial.print("tiltState: ");
-  Serial.println(tiltState);  
-  // Set red and blue leds based on tiltState
+  Serial.println(tiltState);
+
+  // Update leds
   digitalWrite(RED_LED_PIN, !tiltState);
   digitalWrite(BLUE_LED_PIN, tiltState);
 }
 
+// Phototransistor 1 interrupt - watching port C
 ISR(PCINT1_vect) {
-  Serial.println("LIGHT INTERRUPT!");
-  // Get and print lightState
-  lightState = PINC & 0b00000001;  // digital read of lightState - faster?
+  Serial.println("Light interrupt 1!");
+
+  // Get lightState and display - digital read used on analog pin
+  lightState = PINC & 0b00000001; // Digital read of phototransistor pin
   Serial.print("lightState: ");
   Serial.println(lightState);
-  // Play a tone when NO light is detected
-  
-  if (lightState != prevLightState) {
-  	prevLightState = lightState;
-    if (lightState != 0) {
-    	tone(8, 42);
+
+  // Update lightstate and play tones
+  if (lightState != prevLightState) { // If lightState has changed
+  	prevLightState = lightState; // Update previous lightState
+    if (lightState != 0) { // If lightState == 1 play a tone
+    	tone(8, 494);
   	}
-  	else {
-    	//noTone(8);
-    	tone(8, 340);
+  	else { // If lightState == 0 play a different tone
+    	tone(8, 349);
   	}
   }
-  
-  //if (lightState == 0) {
-  //  tone(8, 42);
-  //}
-  //else {
-    //noTone(8);
-  //  tone(8, 340);
-  //}
 }
 
+// Phototransistor 2 interrupt - watching port B
 ISR(PCINT0_vect) {
-  Serial.println("LIGHT INTERRUPT2!");
-  // Get and print lightState
-  lightState2 = PINB & 0b00001000;  // digital read of lightState - faster?
+  Serial.println("Light interrupt 2!");
+
+  // Get lightState2 and display
+  lightState2 = PINB & 0b00001000; // Digital read of phototransistor 2 pin
   Serial.print("lightState2: ");
   Serial.println(lightState2);
-  // Play a tone when NO light is detected
-  if (lightState2 == 0) {
-    tone(8, 420);
-  }
-  else {
-    //noTone(8);
-    tone(8, 670);
+
+// Update lightstate2 and play tones
+  if (lightState2 != prevLightState2) { // If lightState has changed
+  	prevLightState2 = lightState2; // Update previous lightState2
+    if (lightState2 != 0) { // If lightState2 == 1 play a tone
+    	tone(8, 330);
+  	}
+  	else { // If lightState2 == 0 play a different tone
+    	tone(8, 440);
+  	}
   }
 }
 
+// Start timer function
 void startTimer(){
+  // Interrupts paused while function is running
   noInterrupts();
   
   // Clear timer controllers
   TCCR1A = 0;
   TCCR1B = 0;
-  TCNT1 = 0;  // timer counter
+  TCNT1 = 0; // Timer counter
   
-  // Set prescaler
-  //TCCR1B |= (1 << CS10);
-  //TCCR1B |= (1 << CS12);
-  //TCCR1B |= (1 << WGM12);  // CTC time compare reset
-  //TCCR1B |= 0b00001101;  // check bytes are correct
-  TCCR1B |= 0b00001101;  // check bytes are correct
+  // Set prescaler and reset CTC
+  TCCR1B |= 0b00001101;  
   
-  
-  OCR1A = 31249;  // Every 2 seconds
-  //OCR1A = 16000000/(1024 * freq) - 1;
+  // Frequency to call timer compare interrupt
+  OCR1A = 15624;  // Every 1 second
   
   //TIMSK1 |= (1 << OCIE1A);
   TIMSK1 |= 0b00000010;
@@ -118,8 +111,9 @@ void startTimer(){
   interrupts();
 }
 
-// ISR for timer
+// Timer interrupt
 ISR(TIMER1_COMPA_vect){
-  ledState = !ledState;
-  digitalWrite(GREEN_LED_PIN, ledState);
+  // Flip the state of the green led
+  digitalWrite(GREEN_LED_PIN, digitalRead(GREEN_LED_PIN) ^ 1);
+  //digitalWrite(GREEN_LED_PIN, PIND & 0b00000100 ^ 1);
 }
